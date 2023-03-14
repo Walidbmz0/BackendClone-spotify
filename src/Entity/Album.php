@@ -45,6 +45,9 @@ class Album
     #[ORM\OneToMany(mappedBy: 'album', targetEntity: Preference::class)]
     private Collection $preferences;
 
+    #[ORM\Column]
+    private ?bool $is_active = null;
+
     public function __construct()
     {
         $this->songs = new ArrayCollection();
@@ -199,6 +202,18 @@ class Album
                 $preference->setAlbum(null);
             }
         }
+
+        return $this;
+    }
+
+    public function isIsActive(): ?bool
+    {
+        return $this->is_active;
+    }
+
+    public function setIsActive(bool $is_active): self
+    {
+        $this->is_active = $is_active;
 
         return $this;
     }
