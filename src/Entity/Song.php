@@ -2,12 +2,17 @@
 
 namespace App\Entity;
 
-use App\Repository\SongRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\SongRepository;
+use Doctrine\Common\Collections\Collection;
+use Symfony\Component\HttpFoundation\File\File;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
+
 
 #[ORM\Entity(repositoryClass: SongRepository::class)]
+#[Vich\Uploadable]
 class Song
 {
     #[ORM\Id]
@@ -16,29 +21,30 @@ class Song
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('album:read')]
     private ?string $title = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $file_path = null;
+    #[Groups('album:read')]
+    private ?string $filePath = null;
 
-    #[ORM\Column]
+    //Ajout d'une nouvelle propriété
+    #[Vich\UploadableField(mapping: 'songs', fileNameProperty: 'filePath')]
+    private ?File $filePathFile = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups('album:read')]
     private ?int $duration = null;
 
-
-    #[ORM\OneToMany(mappedBy: 'song', targetEntity: PlaylistSong::class)]
-    private Collection $playlistSongs;
-
     #[ORM\ManyToOne(inversedBy: 'songs')]
-    #[ORM\JoinColumn(nullable: false)]
     private ?Album $album = null;
 
-    #[ORM\ManyToOne(inversedBy: 'songs')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?PlaylistSong $playlists = null;
+    #[ORM\ManyToMany(targetEntity: Playlist::class, inversedBy: 'songs')]
+    private Collection $playlists;
 
     public function __construct()
     {
-        $this->playlistSongs = new ArrayCollection();
+        $this->playlists = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -60,14 +66,32 @@ class Song
 
     public function getFilePath(): ?string
     {
-        return $this->file_path;
+        return $this->filePath;
     }
 
-    public function setFilePath(string $file_path): self
+    public function setFilePath(string $filePath): self
     {
-        $this->file_path = $file_path;
+        $this->filePath = $filePath;
 
         return $this;
+    }
+
+    //ici on ajoute les méthodes de filePathFile
+
+    /**
+     * @return File|null
+     */
+    public function getFilePathFile(): ?File
+    {
+        return $this->filePathFile;
+    }
+
+    /**
+     * @param File|null $filePathFile
+     */
+    public function setFilePathFile(?File $filePathFile): void
+    {
+        $this->filePathFile = $filePathFile;
     }
 
     public function getDuration(): ?int
@@ -75,41 +99,9 @@ class Song
         return $this->duration;
     }
 
-    public function setDuration(int $duration): self
+    public function setDuration(?int $duration): self
     {
         $this->duration = $duration;
-
-        return $this;
-    }
-
-   
-
-    /**
-     * @return Collection<int, PlaylistSong>
-     */
-    public function getPlaylistSongs(): Collection
-    {
-        return $this->playlistSongs;
-    }
-
-    public function addPlaylistSong(PlaylistSong $playlistSong): self
-    {
-        if (!$this->playlistSongs->contains($playlistSong)) {
-            $this->playlistSongs->add($playlistSong);
-            $playlistSong->setSong($this);
-        }
-
-        return $this;
-    }
-
-    public function removePlaylistSong(PlaylistSong $playlistSong): self
-    {
-        if ($this->playlistSongs->removeElement($playlistSong)) {
-            // set the owning side to null (unless already changed)
-            if ($playlistSong->getSong() === $this) {
-                $playlistSong->setSong(null);
-            }
-        }
 
         return $this;
     }
@@ -126,15 +118,32 @@ class Song
         return $this;
     }
 
-    public function getPlaylists(): ?PlaylistSong
+    /**
+     * @return Collection<int, Playlist>
+     */
+    public function getPlaylists(): Collection
     {
         return $this->playlists;
     }
 
-    public function setPlaylists(?PlaylistSong $playlists): self
+    public function addPlaylist(Playlist $playlist): self
     {
-        $this->playlists = $playlists;
+        if (!$this->playlists->contains($playlist)) {
+            $this->playlists->add($playlist);
+        }
 
         return $this;
+    }
+
+    public function removePlaylist(Playlist $playlist): self
+    {
+        $this->playlists->removeElement($playlist);
+
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->title;
     }
 }

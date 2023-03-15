@@ -2,18 +2,42 @@
 
 namespace App\Entity;
 
-use App\Repository\AlbumRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\AlbumRepository;
+use ApiPlatform\Metadata\ApiResource;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: AlbumRepository::class)]
+#[ApiResource(
+    normalizationContext:['Groups'=>['album:read']]
+)]
+
+#[ApiFilter(
+    SearchFilter::class, properties: [
+     'id'=> 'exact',
+     'title'=> 'exact',
+     'artist.biography' => 'partial',
+     'genre.label' => 'exact',
+     
+     
+     ])]
+
+#[ApiFilter(
+    BooleanFilter::class , properties: ['isActive']
+)]
+
 class Album
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups('album:read')]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -34,12 +58,16 @@ class Album
 
     #[ORM\ManyToOne(inversedBy: 'albums')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups('album:read')]
     private ?genre $genre = null;
 
+
     #[ORM\ManyToOne(inversedBy: 'albums')]
+    #[Groups('album:read')]
     private ?artist $artist = null;
 
     #[ORM\OneToMany(mappedBy: 'album', targetEntity: Song::class)]
+    #[Groups('album:read')]
     private Collection $songs;
 
     #[ORM\OneToMany(mappedBy: 'album', targetEntity: Preference::class)]
@@ -175,6 +203,12 @@ class Album
 
         return $this;
     }
+
+    public function __toString(): string
+    {
+        return $this->title;
+    }
+    
 
     /**
      * @return Collection<int, Preference>

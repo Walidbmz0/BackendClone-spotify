@@ -66,6 +66,7 @@ class AlbumCrudController extends AbstractCrudController
                 BooleanField::New('is_active'),
                 DateField::new('createdAt')->hideOnForm(),
                 DateField::new('updatedAt')->hideOnForm(),
+                AssociationField::new('songs', 'nbr de pistes')->hideOnForm(),
             
         ];
     }
